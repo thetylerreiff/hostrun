@@ -1,5 +1,4 @@
-import { HostRun, Executor } from '../src/HostRun'
-import { stringify } from 'querystring'
+import { HostRun, Executor } from '../src/hostrun'
 
 /**
  *
