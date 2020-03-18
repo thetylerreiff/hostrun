@@ -1,5 +1,5 @@
 import { HostRun, Executor } from '../src/hostrun'
-
+import * as path from 'path'
 /**
  *
  * @param cmd
@@ -20,10 +20,11 @@ describe('Homerun test', () => {
 
   it('Should set pwd', () => {
     const workingDir = '/home/test'
+    const executable = 'test'
     const h = new HostRun({ pwd: workingDir })
-    h.run('test.exe').compile()
+    h.run(executable).compile()
 
-    expect(h.cmd).toEqual('\\home\\test\\test.exe')
+    expect(h.cmd).toEqual(path.join(workingDir, executable))
   })
 
   it('add flag', () => {
