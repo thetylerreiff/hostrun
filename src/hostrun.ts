@@ -2,10 +2,10 @@ import * as cp from 'child_process'
 import * as path from 'path'
 
 type FlagTuple = [string, string]
-type Executor = (
+export type Executor = (
   cmd: string,
-  callback: (err: Error | null, stdout: string | Buffer, stderr: string | Buffer) => void
-) => void
+  callback: (err: Error | null, stdout: string | Buffer, stderr: string | Buffer) => any
+) => any
 
 interface Options {
   pwd: string
@@ -18,8 +18,8 @@ interface Options {
   executor: Executor
 }
 
-export class Hostrun {
-  pwd: string
+export class HostRun {
+  pwd: string | null
   executable: string | null
   flags: FlagTuple[]
   args: string[]
@@ -35,7 +35,7 @@ export class Hostrun {
    */
   constructor(options?: Partial<Options>) {
     // set defaults
-    this.pwd = process.cwd()
+    this.pwd = null
     this.flags = []
     this.args = []
     this.executable = null
@@ -55,7 +55,7 @@ export class Hostrun {
    *
    * @param executable
    */
-  run(executable: string): Hostrun {
+  run(executable: string): HostRun {
     this.executable = executable
     return this
   }
@@ -64,7 +64,7 @@ export class Hostrun {
    *
    * @param argument
    */
-  arg(argument: string): Hostrun {
+  arg(argument: string): HostRun {
     this.args.push(argument)
     return this
   }
@@ -74,7 +74,7 @@ export class Hostrun {
    * @param type
    * @param value
    */
-  flag(type: string, value: string | number): Hostrun {
+  flag(type: string, value: string | number): HostRun {
     this.flags.push([type, value.toString()])
     return this
   }
@@ -83,27 +83,35 @@ export class Hostrun {
    *
    * @param options
    */
-  options(options: Partial<Options>): Hostrun {
-    if (options?.dryRun) {
+  options(options: Partial<Options>): HostRun {
+    if (options.dryRun) {
       this.dryRun = options.dryRun
     }
-    if (options?.pwd) {
+    if (options.executor) {
+      this.execute = options.executor
+    }
+    if (options.pwd) {
       this.pwd = options.pwd
     }
     return this
   }
 
-  compile(): Hostrun {
+  compile(): HostRun {
     if (this.executable === null) {
-      throw new Error('Executable can not be null')
+      throw new TypeError('Executable can not be null')
     }
+
     // build cmd string starting with absolute path to exec.
-    this.cmd = path.join(this.pwd, this.executable)
+    if (this.pwd !== null) {
+      this.cmd = path.join(this.pwd, this.executable)
+    } else {
+      this.cmd = this.executable
+    }
     // join in the arguments.
     this.cmd = [this.cmd, ...this.args].join(' ')
     // then concat flag and flag values finishing by joining to cmd string.
     const flagStr = this.flags.map(i => `${i[0]} ${i[1]}`).join(' ')
-    this.cmd = [this.cmd, flagStr].join(' ')
+    this.cmd = [this.cmd, flagStr].join(' ').trim()
     return this
   }
 
@@ -111,7 +119,7 @@ export class Hostrun {
    *
    * @param options
    */
-  exec(options?: Partial<Options>): Hostrun {
+  exec(options?: Partial<Options>): HostRun {
     // if options are provided set them before proceeding.
     if (options) {
       this.options(options)
@@ -147,4 +155,4 @@ export class Hostrun {
   }
 }
 
-export const host = new Hostrun()
+export const host = new HostRun()
