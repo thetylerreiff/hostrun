@@ -1,13 +1,13 @@
 import * as cp from 'child_process'
 import * as path from 'path'
 
-type FlagTuple = [string, string]
+export type FlagTuple = [string, string]
 export type Executor = (
   cmd: string,
   callback: (err: Error | null, stdout: string | Buffer, stderr: string | Buffer) => any
 ) => any
 
-interface Options {
+export interface Options {
   pwd: string
   executable: string
   execPath: string
@@ -27,6 +27,7 @@ export class HostRun {
   stderr: string | Buffer | null
   cmd: string | null
   dryRun: boolean
+  verbose: boolean
   execute: Executor
 
   /**
@@ -43,6 +44,7 @@ export class HostRun {
     this.stdout = null
     this.cmd = null
     this.dryRun = false
+    this.verbose = false
     this.execute = cp.exec
 
     // set user provided options if they exist
@@ -93,6 +95,9 @@ export class HostRun {
     if (options.pwd) {
       this.pwd = options.pwd
     }
+    if (options.verbose) {
+      this.verbose = options.verbose
+    }
     return this
   }
 
@@ -102,11 +107,8 @@ export class HostRun {
     }
 
     // build cmd string starting with absolute path to exec.
-    if (this.pwd !== null) {
-      this.cmd = path.join(this.pwd, this.executable)
-    } else {
-      this.cmd = this.executable
-    }
+
+    this.cmd = this.executable
     // join in the arguments.
     this.cmd = [this.cmd, ...this.args].join(' ')
     // then concat flag and flag values finishing by joining to cmd string.
@@ -124,6 +126,11 @@ export class HostRun {
     if (options) {
       this.options(options)
     }
+    // change working dir if set
+    if (this.pwd !== null) {
+      process.chdir(path.join('/', this.pwd))
+    }
+    this._log(`Working dir: ${process.cwd()}`)
     // compile command string.
     this.compile()
     if (this.cmd === null) {
@@ -140,6 +147,12 @@ export class HostRun {
     return this
   }
 
+  private _log(message: any) {
+    if (this.verbose) {
+      console.log(message)
+    }
+  }
+
   /**
    *
    * @param cmd - command string to run on cmd.
@@ -154,5 +167,3 @@ export class HostRun {
     })
   }
 }
-
-export const host = new HostRun()

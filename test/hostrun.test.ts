@@ -1,4 +1,4 @@
-import { HostRun, Executor } from '../src/hostrun'
+import { HostRun, Executor, Options } from '../src/hostrun'
 import * as path from 'path'
 /**
  *
@@ -18,21 +18,22 @@ describe('Homerun test', () => {
     expect(new HostRun()).toBeInstanceOf(HostRun)
   })
 
-  it('Should set pwd', () => {
-    const workingDir = '/home/test'
-    const executable = 'test'
-    const h = new HostRun({ pwd: workingDir })
-    h.run(executable).compile()
-
-    expect(h.cmd).toEqual(path.join(workingDir, executable))
+  it('Should change working dir before execution', () => {
+    const workingDir = '/tmp'
+    const executable = 'python'
+    const x: Executor = jest.fn()
+    const h = new HostRun({ pwd: workingDir, executor: x })
+    h.run(executable).exec()
+    expect(x).toBeCalled()
+    expect(h.pwd).toEqual(workingDir)
   })
 
   it('add flag', () => {
     const h = new HostRun()
-    h.run('test.exe')
+    h.run('python')
       .flag('-t', 1)
       .compile()
-    expect(h.cmd).toEqual('test.exe -t 1')
+    expect(h.cmd).toEqual('python -t 1')
   })
 
   it('add flag with same key w/o overwriting', () => {
@@ -54,10 +55,11 @@ describe('Homerun test', () => {
 
   it('adds options', () => {
     const x: Executor = jest.fn()
-    const options = {
+    const options: Partial<Options> = {
       pwd: '/home/test',
       executor: x,
-      dryRun: true
+      dryRun: true,
+      verbose: true
     }
     const h = new HostRun()
     h.run('test.exe')
@@ -65,7 +67,8 @@ describe('Homerun test', () => {
       .compile()
     expect(h.execute).toBe(x)
     expect(h.pwd).toEqual('/home/test')
-    expect(h.dryRun).toBeTruthy()
+    expect(h.dryRun).toBe(options.dryRun)
+    expect(h.verbose).toBe(options.verbose)
   })
 
   it('should error when attempting compile w/o executable', () => {
@@ -93,5 +96,13 @@ describe('Homerun test', () => {
     h.run('test.exe').compile()
     expect(h.cmd).toBe('test.exe')
     expect(x).toBeCalledTimes(0)
+  })
+
+  it('should apply options in exec method', () => {
+    const x: Executor = jest.fn()
+    const h = new HostRun({ executor: x })
+    h.run('python').exec({ executor: x })
+    expect(x).toBeCalled()
+    expect(h.execute).toBe(x)
   })
 })
